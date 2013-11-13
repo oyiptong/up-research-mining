@@ -39,12 +39,13 @@ $ export PATH=/Applications/Postgres93.app/Contents/MacOS/bin/:$PATH
 ### Python and environment tools
 
 For this project, we will use pyenv as a tool to manage our python versions and environments.  
-To install pyenv, you can go take a look at the pages for [pyenv](https://github.com/yyuu/pyenv) and [pyenv-virtualenv](https://github.com/yyuu/pyenv-virtualenv).  
+To install pyenv, you can go take a look at the pages for [pyenv](https://github.com/yyuu/pyenv)  
 
 Using brew, you can install them by running
 ```
 $ brew install pyenv  
 $ echo 'if which pyenv > /dev/null; then eval "$(pyenv init -)"; fi' >> ~/.bash_profile
+$ . ~/.bash_profile
 ```
 
 Once you have pyenv installed, you can install python 2.7.5:
@@ -54,5 +55,7 @@ $ pyenv install 2.7.5
 
 Finally, once you have pyenv installed, go to the directory where this repository is checked out. Set up a virtualenv and install python dependencies by running:
 ```
+$ pyenv local 2.7.5
+$ pip install virtualenv
 $ ./setup-project.sh
 ```
