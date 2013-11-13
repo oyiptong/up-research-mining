@@ -5,8 +5,8 @@ logger = logging.getLogger("upstudy")
 class PostgresBackend(object):
 
     SETUP_SQL = [
-            "CREATE TABLE IF NOT EXISTS interests (id SERIAL PRIMARY KEY, name TEXT)",
-            "CREATE UNIQUE INDEX ON interests (name)",
+            "CREATE TABLE IF NOT EXISTS interests (id SERIAL PRIMARY KEY, namespace TEXT, name TEXT)",
+            "CREATE UNIQUE INDEX ON interests (namespace, name)",
             "CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, uuid TEXT, download_source TEXT, locale TEXT)",
             "CREATE UNIQUE INDEX ON users (uuid)",
             "CREATE TABLE IF NOT EXISTS documents (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id), day INTEGER)",
@@ -14,14 +14,14 @@ class PostgresBackend(object):
     ]
 
     DROP_SQL = [
-            "DROP TABLE interests CASCADE",
-            "DROP TABLE users CASCADE",
-            "DROP TABLE documents CASCADE",
-            "DROP TABLE interests_documents CASCADE",
+            "DROP TABLE IF EXISTS interests CASCADE",
+            "DROP TABLE IF EXISTS users CASCADE",
+            "DROP TABLE IF EXISTS documents CASCADE",
+            "DROP TABLE IF EXISTS interests_documents CASCADE",
     ]
 
     def _execute(self, sql, params=[]):
-        logger.debug("Executing: {0} {1}".format(sql, str(params)))
+        logger.debug("SQL: {0} {1}".format(sql, str(params)))
         self.cursor.execute(sql, params)
 
     def _initialize(self, clobber=False):
@@ -46,5 +46,5 @@ class PostgresBackend(object):
         from upstudy.data.labels import LABELS
         for namespace, labels in LABELS.iteritems():
             for label in labels:
-                self._execute("INSERT INTO interests (name) VALUES (%s)", ["{0}:{1}".format(namespace, label)])
+                self._execute("INSERT INTO interests (namespace, name) VALUES (%s, %s)", [namespace, label])
         self.connection.commit()
