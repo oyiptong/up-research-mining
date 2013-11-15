@@ -7,6 +7,7 @@ if os.environ.has_key('MOZ_UPSTUDY_DEV'):
     requires.extend([
         "ipython==1.1.0",
         "psycopg2==2.5.1",
+        "python-dateutil==2.2",
     ])
 
 setup(
