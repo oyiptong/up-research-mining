@@ -12,23 +12,30 @@ ADDITIONAL_QUESTIONS = ["[url(\"interest{0}\")]:additional_interests'".format(i)
 
 def process_payload(payload):
     # find if this user's payload is unique
+    document, timestamp = payload
 
-    uuid = payload["uuid"]
-    locale = payload["locale"]
-    tld_list = payload["tldCounter"]
-    source = payload["source"]
-    version = payload["version"]
+    uuid = document["uuid"]
+    locale = document["locale"]
+    tld_list = document["tldCounter"]
+    source = document["source"]
+    version = document["version"]
 
-    install_date = payload["installDate"]
-    update_date = payload["updateDate"]
-    prefs = payload["prefs"]
+    install_date = document["installDate"]
+    update_date = document["updateDate"]
+    prefs = document["prefs"]
 
     rankers = [DayCount(uuid), VisitCount(uuid)]
     rankings = []
     for ranker in rankers:
-        ranker.consume(payload["interests"])
+        ranker.consume(document["interests"])
         ranking = ranker.get_rankings()
         rankings.append(ranking)
+    
+    print "daycount_edrules_rules\t\t\tvisitcount_edrules_rules"
+    for i in range(len(rankings[0]['rules']['edrules'])):
+        print "{0}\t\t\t{1}".format(
+                rankings[0]['combined']['edrules'][i],
+                rankings[1]['combined']['edrules'][i])
 
     embed()
 
