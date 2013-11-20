@@ -37,7 +37,7 @@ class SQLBackend(object):
 
     def __create_interests(self):
         logger.info("loading initial data: categories, namespaces and types");
-        from upstudy.data.labels import LABELS, NAMESPACES, TYPES
+        from upstudy.data import LABELS, NAMESPACES, TYPES
         for namespace, labels in LABELS.iteritems():
             for label in labels:
                 self._execute(self.SEED_DATA["categories"], [label])
