@@ -41,8 +41,4 @@ class SQLBackend(object):
         for namespace, labels in LABELS.iteritems():
             for label in labels:
                 self._execute(self.SEED_DATA["categories"], [label])
-        for ns in NAMESPACES:
-                self._execute(self.SEED_DATA["namespaces"], [ns])
-        for type in TYPES:
-                self._execute(self.SEED_DATA["types"], [type])
         self.connection.commit()

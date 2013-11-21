@@ -11,16 +11,6 @@ class MySQLBackend(SQLBackend):
                     "name VARCHAR(64) NOT NULL UNIQUE KEY" +
                 ") ENGINE=InnoDB;",
 
-                "CREATE TABLE namespaces (" +
-                    "id INTEGER UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY, " +
-                    "name VARCHAR(64) NOT NULL UNIQUE KEY" +
-                ") ENGINE=InnoDB;",
-
-                "CREATE TABLE types (" +
-                    "id INTEGER UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY, " +
-                    "name VARCHAR(64) NOT NULL UNIQUE KEY" +
-                ") ENGINE=InnoDB;",
-
                 "CREATE TABLE users (" +
                     "id INTEGER UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY, " +
                     "uuid VARCHAR(64) NOT NULL UNIQUE KEY" +
@@ -48,12 +38,11 @@ class MySQLBackend(SQLBackend):
                 "CREATE TABLE submission_interests (" +
                     "user_id INTEGER UNSIGNED NOT NULL, FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE, " + # denormalize user_id
                     "submission_id INTEGER UNSIGNED NOT NULL, FOREIGN KEY (submission_id) REFERENCES submissions(id) ON DELETE CASCADE, " +
-                    "type_id INTEGER UNSIGNED NOT NULL, FOREIGN KEY (type_id) REFERENCES types(id) ON DELETE CASCADE, " +
-                    "namespace_id INTEGER UNSIGNED NOT NULL, FOREIGN KEY (namespace_id) REFERENCES namespaces(id) ON DELETE CASCADE, " +
+                    "type_namespace VARCHAR(255) NOT NULL, INDEX type_namespace_idx USING BTREE (type_namespace), " +
                     "category_id INTEGER UNSIGNED NOT NULL, FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE, " +
                     "day INTEGER UNSIGNED NOT NULL, INDEX day_idx USING BTREE (day), " +
                     "hostCount TEXT NOT NULL, " +
-                    "PRIMARY KEY (user_id, type_id, namespace_id, category_id, day)" +
+                    "PRIMARY KEY (user_id, type_namespace, day)" +
                 ") ENGINE=InnoDB;"
             ],
 
@@ -62,8 +51,6 @@ class MySQLBackend(SQLBackend):
                 "DROP TABLE IF EXISTS submissions CASCADE;",
                 "DROP TABLE IF EXISTS survey_data CASCADE;",
                 "DROP TABLE IF EXISTS categories CASCADE;",
-                "DROP TABLE IF EXISTS namespaces CASCADE;",
-                "DROP TABLE IF EXISTS types CASCADE;",
                 "DROP TABLE IF EXISTS users CASCADE;",
             ],
 
@@ -73,7 +60,5 @@ class MySQLBackend(SQLBackend):
 
     SEED_DATA = {
             "categories": "INSERT IGNORE INTO categories (name) VALUES (%s);",
-            "namespaces": "INSERT IGNORE INTO namespaces (name) VALUES (%s);",
-            "types": "INSERT IGNORE INTO types (name) VALUES (%s);",
     }
     driver = MySQLdb
