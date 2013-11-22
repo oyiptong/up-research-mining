@@ -10,10 +10,10 @@ class SQLBackend(object):
 
     def refresh(self):
         self.engine = create_engine("{type}+{driver}://{user}:{password}@{host}/{database}".format(**self.config), encoding='utf8')
-        self.connection = self.engine.connect()
-        self.connection.execute("COMMIT")
+        self._connection = self.engine.connect()
+        self._connection.execute("COMMIT")
         Session = sessionmaker(bind=self.engine)
-        self.session = Session()
+        self._session = Session()
 
     def __init__(self, config):
         self.config = config
@@ -24,11 +24,11 @@ class SQLBackend(object):
 
     def __initialize__(self):
         logger.info("creating database");
-        self.connection.execute("CREATE DATABASE up_research CHARACTER SET utf8;")
+        self._connection.execute("CREATE DATABASE up_research CHARACTER SET utf8;")
 
     def __drop__(self):
         logger.info("dropping database");
-        self.connection.execute("DROP DATABASE up_research;")
+        self._connection.execute("DROP DATABASE up_research;")
 
     def __create_tables__(self):
         from upstudy.data.models import create_tables
@@ -37,7 +37,11 @@ class SQLBackend(object):
     def __load_categories__(self):
         logger.info("loading initial data");
         from upstudy.data.models import create_categories
-        create_categories(self.session)
+        create_categories(self._session)
+
+    @property
+    def session(self):
+        return self._session
 
     @classmethod
     def instance(cls):
