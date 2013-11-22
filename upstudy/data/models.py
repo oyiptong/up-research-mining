@@ -1,5 +1,5 @@
 import upstudy.settings as settings
-from sqlalchemy import Column, Integer, String, Text, Date, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, Text, Date, DateTime, ForeignKey, Index
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -30,15 +30,18 @@ class User(Base):
 
 class Submission(Base):
     __tablename__ = "submissions"
-    __table_args__ = {'mysql_engine':'InnoDB'}
+    __table_args__ = (
+            Index("user_id_payload", "user_id", "payload_made_at"),
+            {'mysql_engine':'InnoDB'}
+    )
 
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"))
     user = relationship("User", backref=backref("submissions", order_by=id))
-    received_at = Column(DateTime(timezone=False), nullable=False, index=True)
-    installed_at = Column(DateTime(timezone=False), nullable=False, index=True)
-    payload_made_at = Column(DateTime(timezone=False), nullable=False, index=True)
-    updated_at = Column(DateTime(timezone=False), nullable=False, index=True)
+    received_at = Column(DateTime, nullable=False, index=True)
+    installed_at = Column(DateTime, nullable=False, index=True)
+    payload_made_at = Column(DateTime, nullable=False, index=True)
+    updated_at = Column(DateTime, nullable=False, index=True)
     source = Column(String(255), nullable=False, index=True)
     locale = Column(String(255), nullable=False, index=True)
     addon_version = Column(String(255), nullable=False, index=True)
@@ -46,7 +49,7 @@ class Submission(Base):
     prefs = Column(Text, nullable=False)
 
     def __repr__(self):
-        return "<Submission('{0}:{1}')>".format(self.user.uuid, self.received_at.strftime("%Y/%m/%d"))
+        return "<Submission('{0}:{1}')>".format(self.user.uuid, self.payload_made_at.strftime("%Y/%m/%d"))
 
 class SubmissionInterest(Base):
     __tablename__ = "submission_interests"
