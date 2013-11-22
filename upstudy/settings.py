@@ -1,14 +1,8 @@
-postgres = {
-        "database" : "up-research",
-}
-
-mysql = {
-        "db": "up_research",
+database = {
+        "type": "mysql",
+        "driver": "mysqldb",
+        "host": "localhost",
         "user": "up",
-        "passwd": "upandaway",
-        "compress": True,
-        "use_unicode": True,
-        "charset": "utf8",
+        "password": "upandaway",
+        "database": "up_research"
 }
-
-backend = "mysql"

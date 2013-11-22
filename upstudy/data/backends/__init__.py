@@ -2,43 +2,36 @@ __import__('pkg_resources').declare_namespace(__name__)
 
 import logging
 logger = logging.getLogger("upstudy")
+from sqlalchemy import create_engine
+from sqlalchemy.orm.session import sessionmaker
 
 class SQLBackend(object):
-    def _execute(self, sql, params=[]):
-        logger.debug("SQL: {0} {1}".format(sql, str(params)))
-        self.cursor.execute(sql, params)
-        results = self.cursor.fetchall()
 
-    def _initialize(self, clobber=False):
-        statements = []
-        if clobber:
-            logger.info("tearing down {0} tables".format(len(self.SCHEMA["teardown"])));
-            for sql in self.SCHEMA["teardown"]:
-                self._execute(sql)
-            self.connection.commit()
+    def refresh(self):
+        self.engine = create_engine("{type}+{driver}://{user}:{password}@{host}/{database}".format(**self.config), encoding='utf8')
+        self.connection = self.engine.connect()
+        self.connection.execute("COMMIT")
+        Session = sessionmaker(bind=self.engine)
+        self.session = Session()
 
-        logger.info("creating {0} tables".format(len(self.SCHEMA["tables"])));
-        for sql in self.SCHEMA["tables"]:
-            self._execute(sql)
-        self.connection.commit()
+    def __init__(self, config):
+        self.config = config
+        self.refresh()
 
-        logger.info("creating {0} indexes".format(len(self.SCHEMA["indexes"])));
-        for sql in self.SCHEMA["indexes"]:
-            self._execute(sql)
-        self.connection.commit()
+    def initialize(self):
+        logger.info("creating database");
+        self.connection.execute("CREATE DATABASE up_research CHARACTER SET utf8;")
 
-    def __init__(self, settings):
-        self.settings = settings
-        self.connection = self.driver.connect(**self.settings)
-        self.cursor = self.connection.cursor()
+    def drop(self):
+        logger.info("dropping database");
+        self.connection.execute("DROP DATABASE up_research;")
 
-    def _setup(self):
-        self.__create_interests()
+    def create_tables(self):
+        from upstudy.data.models import create_tables
+        create_tables(self.engine)
 
-    def __create_interests(self):
-        logger.info("loading initial data: categories, namespaces and types");
-        from upstudy.data import LABELS, NAMESPACES, TYPES
-        for namespace, labels in LABELS.iteritems():
-            for label in labels:
-                self._execute(self.SEED_DATA["categories"], [label])
-        self.connection.commit()
+    def load_categories(self):
+        logger.info("loading initial data");
+        from upstudy.data.models import create_categories
+
+        create_categories(self.session)

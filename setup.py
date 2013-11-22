@@ -8,6 +8,7 @@ if os.environ.has_key('MOZ_UPSTUDY_DEV'):
         "ipython==1.1.0",
         "MySQL-python==1.2.4",
         "python-dateutil==2.2",
+        "SQLAlchemy==0.8.3",
     ])
 
 setup(
