@@ -19,7 +19,7 @@ if __name__ == "__main__":
     if args.verbose:
         logger.setLevel(logging.DEBUG)
         logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
-    db = SQLBackend(settings.database)
+    db = SQLBackend.instance()
     if args.clobber:
         db.__drop__()
     db.__initialize__()

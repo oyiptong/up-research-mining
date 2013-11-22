@@ -2,6 +2,7 @@ __import__('pkg_resources').declare_namespace(__name__)
 
 import logging
 logger = logging.getLogger("upstudy")
+from upstudy import settings
 from sqlalchemy import create_engine
 from sqlalchemy.orm.session import sessionmaker
 
@@ -17,6 +18,9 @@ class SQLBackend(object):
     def __init__(self, config):
         self.config = config
         self.refresh()
+
+        if not hasattr(SQLBackend, "_instance"):
+            SQLBackend._instance = self
 
     def __initialize__(self):
         logger.info("creating database");
@@ -34,3 +38,10 @@ class SQLBackend(object):
         logger.info("loading initial data");
         from upstudy.data.models import create_categories
         create_categories(self.session)
+
+    @classmethod
+    def instance(cls):
+        if hasattr(SQLBackend, "_instance"):
+            return SQLBackend._instance
+        else:
+            return SQLBackend(settings.database)
