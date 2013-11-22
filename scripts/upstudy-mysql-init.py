@@ -21,8 +21,8 @@ if __name__ == "__main__":
         logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
     db = SQLBackend(settings.database)
     if args.clobber:
-        db.drop()
-    db.initialize()
-    db.create_tables()
+        db.__drop__()
+    db.__initialize__()
+    db.__create_tables__()
     db.refresh()
-    db.load_categories()
+    db.__load_categories__()

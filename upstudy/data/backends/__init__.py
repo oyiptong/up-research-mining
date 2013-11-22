@@ -18,20 +18,19 @@ class SQLBackend(object):
         self.config = config
         self.refresh()
 
-    def initialize(self):
+    def __initialize__(self):
         logger.info("creating database");
         self.connection.execute("CREATE DATABASE up_research CHARACTER SET utf8;")
 
-    def drop(self):
+    def __drop__(self):
         logger.info("dropping database");
         self.connection.execute("DROP DATABASE up_research;")
 
-    def create_tables(self):
+    def __create_tables__(self):
         from upstudy.data.models import create_tables
         create_tables(self.engine)
 
-    def load_categories(self):
+    def __load_categories__(self):
         logger.info("loading initial data");
         from upstudy.data.models import create_categories
-
         create_categories(self.session)
