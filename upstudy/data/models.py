@@ -68,16 +68,16 @@ class SubmissionInterest(Base):
 
     day = Column(Date, nullable=False, index=True, primary_key=True)
     type_namespace = Column(String(255), nullable=False, index=True, primary_key=True)
-    hostCount = Column(Text, nullable=False)
+    host_count = Column(Text, nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
     user = relationship("User", backref=backref("submission_interests", order_by=day))
     submission_id = Column(Integer, ForeignKey("submissions.id"))
     submission = relationship("Submission", backref=backref("submission_interests", order_by=type_namespace))
-    category_id = Column(Integer, ForeignKey("categories.id"))
+    category_id = Column(Integer, ForeignKey("categories.id"), primary_key=True)
     category = relationship("Category", backref=backref("categories", order_by=type_namespace))
 
     def __repr__(self):
-        return "<SubmissionInterest('{0}:{1}:{2}')>".format(self.user.uuid, self.type_namespace, self.day)
+        return "<SubmissionInterest('{0}:{1}:{2}:{3}')>".format(self.user.uuid, self.type_namespace, self.category.name.split('.')[1], self.day)
 
 def create_tables(engine):
     Base.metadata.create_all(engine)
