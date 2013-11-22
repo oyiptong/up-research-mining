@@ -28,6 +28,17 @@ class User(Base):
     def __repr__(self):
         return "<User('{0}')>".format(self.uuid)
 
+    @classmethod
+    def get_or_create(cls, session, uuid):
+        """
+        Get or Create a user with a given uuid
+        """
+        user = session.query(User).filter(User.uuid == uuid).first()
+        if not user:
+            user = cls(uuid=uuid)
+            session.add(user)
+        return user
+
 class Submission(Base):
     __tablename__ = "submissions"
     __table_args__ = (
