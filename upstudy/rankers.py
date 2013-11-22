@@ -1,6 +1,8 @@
 import operator
 from upstudy.data.labels import LABELS, NAMESPACES, TYPES
 
+IGNORED_INTERESTS = set(["__news_counter", "__news_home_counter"])
+
 class Ranker(object):
 
     def __init__(self, uuid):
@@ -55,8 +57,9 @@ class DayCount(Ranker):
             for type, ns_data in data[day_num].iteritems():
                 for namespace, interest_data in data[day_num][type].iteritems():
                     for interest, counts in data[day_num][type][namespace].iteritems():
-                        if counts:
-                            self.data[type][namespace][interest] += 1
+                        if interest not in IGNORED_INTERESTS:
+                            if counts:
+                                self.data[type][namespace][interest] += 1
 
 class VisitCount(Ranker):
 
@@ -69,4 +72,5 @@ class VisitCount(Ranker):
             for type, ns_data in data[day_num].iteritems():
                 for namespace, interest_data in data[day_num][type].iteritems():
                     for interest, counts in data[day_num][type][namespace].iteritems():
-                        self.data[type][namespace][interest] += sum(counts)
+                        if interest not in IGNORED_INTERESTS:
+                            self.data[type][namespace][interest] += sum(counts)
