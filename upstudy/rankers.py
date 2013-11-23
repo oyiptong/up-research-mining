@@ -1,5 +1,5 @@
 import operator
-from upstudy.data.labels import LABELS, NAMESPACES, TYPES
+from upstudy.data import LABELS, NAMESPACES, TYPES
 
 IGNORED_INTERESTS = set(["__news_counter", "__news_home_counter"])
 
