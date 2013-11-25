@@ -12,7 +12,7 @@ from IPython import embed
 from upstudy.rankers import DayCount, VisitCount
 from upstudy.data.backends import SQLBackend
 from upstudy.data.models import Category, User, Submission, SubmissionInterest
-from dateutil.parser import parse
+import dateutil.parser
 from sqlalchemy.sql import exists
 from sqlalchemy.exc import IntegrityError
 
@@ -66,9 +66,9 @@ def ingest_payload(payload, session, stats, interest_filter):
 
     # MySQL problem: datetimes with timezones can't be stored
     # We  then convert to UTC, strip the timezone away then save
-    payload_dt = datetime.fromtimestamp(mktime(parse(TZ_PATTERN.match(document["payloadDate"]).groups()[0]).timetuple()))
-    installed_dt = datetime.fromtimestamp(mktime(parse(TZ_PATTERN.match(document["installDate"]).groups()[0]).timetuple()))
-    updated_dt = datetime.fromtimestamp(mktime(parse(TZ_PATTERN.match(document["updateDate"]).groups()[0]).timetuple()))
+    payload_dt = datetime.fromtimestamp(mktime(dateutil.parser.parse(TZ_PATTERN.match(document["payloadDate"]).groups()[0]).timetuple()))
+    installed_dt = datetime.fromtimestamp(mktime(dateutil.parser.parse(TZ_PATTERN.match(document["installDate"]).groups()[0]).timetuple()))
+    updated_dt = datetime.fromtimestamp(mktime(dateutil.parser.parse(TZ_PATTERN.match(document["updateDate"]).groups()[0]).timetuple()))
     prefs = document["prefs"]
 
     try:
@@ -136,51 +136,61 @@ def ingest_payload(payload, session, stats, interest_filter):
 def process_survey(survey):
     data = {}
 
-    user_id = survey["userID"]
-    download_source = survey["downloadSource"]
+    # user information
+    user_id = survey["16: userID"]
     response_id = survey["Response ID"]
     status = survey["Status"]
-    user_agent = survey["User Agent"]
+    #user_agent = survey["User Agent"]
+    language = survey["Language"]
+    download_source = survey["17: downloadSource"]
 
-    # warming up questions
-    computer_users = survey["computer_users"]
-    hours_per_day = survey["hours_per_day"]
-    clear_cookies = survey["clear_cookies"]
+    # survey time
+    started_datestr = None # used to be available
+    started_date = None #started_date = dateutil.parser.parse(started_datestr)
+    submission_datestr = survey["Date Submitted"]
+    submitted_date = dateutil.parser.parse(submission_datestr)
 
-    # survey gizmo data
+    # location
     city = survey["City"]
     country = survey["Country"]
     region = survey["Region"]
-    comments = survey["Comments"]
 
-    # other data
-    custom_interests = survey["custom_interests"]
-    desired_websites = survey["desired_websites"]
-    likes_personalization = survey["likes_personalization"]
-    more_comfortable = survey["more_comfortable"]
-    other_thoughts = survey["other_thoughts"]
+    # multiple choice questions
+    computer_users = survey["28: computer_users"]
+    hours_per_day = survey["27: hours_per_day"]
+    clear_cookies = survey["29: clear_cookies"]
+    likes_personalization = survey["30: likes_personalization"]
 
-    # survey time
-    started_date = survey["Time Started"]
-    submission_date = survey["Date Submitted"]
+    # free-form text entries
+    custom_interests = survey["39: custom_interests"]
+    desired_websites = survey["31: desired_websites"]
+    more_comfortable = survey["32: more_comfortable"]
+    other_thoughts = survey["33: other_thoughts"]
+
+    # interests
+    very_interested = survey["37: top_5"]
+    interested = survey["38: additional_interests"]
 
     if started_date and submission_date:
-        started = dateutil.parser.parse(started_date)
-        submitted = datetutil.parser.parse(submission_date)
-        time_taken = submitted - started
+        time_taken = submitted_date - started_date
         logger.debug("uuid:{0} took {1} answering the survey".format(user_id, time_taken))
 
-    ranked_interests = []
-    if survey["interests"]:
-        ranked = json.loads(txt_ranked_interests)
+
+    all_interests = survey["15: interests"]
+    score_list = survey["35: scoreList"]
+    interest_scores = {}
+
+    #TODO: note when there isn't all_interest or score_list
+    if all_interests and score_list:
+        ranked_interests = []
+        ranked = json.loads(all_interests)
         for i in range(1,31):
             ranked_interests.append(ranked["interest{0}".format(i)])
 
-    scores = survey["scoreList"]
-    if survey["scoreList"]:
-        scores = [int(s) for s in survey["scoreList"].split(",")]
-        for index, score in scores:
-            pass
+        scores = map(int, survey["35: scoreList"].split(","))
+        for index, interest in enumerate(ranked_interests):
+            interest_scores[interest] = scores[index]
+    print interest_scores
 
 ### File inputs
 
