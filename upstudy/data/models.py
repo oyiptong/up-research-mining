@@ -45,6 +45,34 @@ class User(Base):
             session.add(user)
         return user
 
+class Survey(Base):
+    __tablename__ = "surveys"
+    __table_args__ = {'mysql_engine':'InnoDB'}
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
+    user = relationship("User", backref=backref("surveys", order_by=id))
+
+    language = Column(String(255), nullable=False, index=True)
+    download_source = Column(String(255), nullable=False, index=True)
+
+    city = Column(String(255), nullable=False, index=True)
+    country = Column(String(255), nullable=False, index=True)
+    region = Column(String(255), nullable=False, index=True)
+
+    computer_users = Column(String(255), nullable=False, index=True)
+    hours_per_day = Column(String(255), nullable=False, index=True)
+    clear_cookies = Column(String(255), nullable=False, index=True)
+    likes_personalization = Column(String(255), nullable=False, index=True)
+
+    custom_interests = Column(Text, nullable=False)
+    desired_websites = Column(Text, nullable=False)
+    more_comfortable = Column(Text, nullable=False)
+    other_thoughts = Column(Text, nullable=False)
+
+    def __repr__(self):
+        return "<Survey('{0}:{1}'>".format(self.user_id, self.response_id)
+
 class Submission(Base):
     __tablename__ = "submissions"
     __table_args__ = (
