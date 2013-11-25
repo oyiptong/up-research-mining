@@ -2,7 +2,6 @@
 import sys
 import argparse
 import logging
-from upstudy import settings
 from upstudy.data.backends import SQLBackend
 from upstudy.data.models import create_categories
 logging.basicConfig(format="%(levelname)s: %(message)s")
