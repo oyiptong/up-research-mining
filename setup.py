@@ -5,6 +5,7 @@ requires = [
         "python-dateutil==2.2",
         "SQLAlchemy==0.8.3",
         "psycopg2==2.5.1",
+        "pybloom==1.1",
 ]
 
 if os.environ.has_key('MOZ_UPSTUDY_DEV'):

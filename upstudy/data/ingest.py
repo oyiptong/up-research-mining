@@ -16,7 +16,6 @@ import dateutil.parser
 from sqlalchemy.sql import exists
 from sqlalchemy.exc import IntegrityError
 
-import numpy as np
 from pybloom import BloomFilter
 
 VERSION_IGNORE = set(["1", "1+"])
