@@ -61,25 +61,27 @@ class SQLBackend(object):
         self._session = Session()
 
     def __initialize__(self):
-        logger.info("creating database");
+        database_name = self.config.get("database", "up_research")
+        logger.info("creating database {0}".format(database_name));
         if self.config["type"] == "mysql":
             self.connect()
-            self._connection.execute("CREATE DATABASE IF NOT EXISTS up_research CHARACTER SET utf8;")
+            self._connection.execute("CREATE DATABASE IF NOT EXISTS {0} CHARACTER SET utf8;".format(database_name))
         elif self.config["type"] == "postgresql":
             self.connect(database="postgres")
             try:
-                self._connection.execute("CREATE DATABASE up_research;")
+                self._connection.execute("CREATE DATABASE {0};".format(database_name))
             except ProgrammingError, e:
                 logging.warning(e)
             self.connect()
 
     def __drop__(self):
-        logger.info("dropping database");
+        database_name = self.config.get("database", "up_research")
+        logger.info("dropping database {0}".format(database_name));
         database = self.config.get("database")
         if self.config["type"] == "postgresql":
             database = "postgres"
         self.connect(database=database)
-        self._connection.execute("DROP DATABASE up_research;")
+        self._connection.execute("DROP DATABASE {0};".format(database_name))
 
     def __create_tables__(self):
         from upstudy.data.models import create_tables
