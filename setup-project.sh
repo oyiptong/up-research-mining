@@ -15,4 +15,4 @@ export MOZ_UPSTUDY_DEV=1
 
 createdb up-research
 python setup.py develop
-./scripts/upstudy-mysql-init.py
+./scripts/upstudy-sql-init.py
