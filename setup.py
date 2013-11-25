@@ -19,7 +19,7 @@ setup(
         version = "0.1",
         description = "Tools to help make sense of data for the UP User Research Study",
         author = "Mozilla",
-        packages=["upstudy", "upstudy.rankers", "upstudy.data", "upstudy.data.backends"],
+        packages=["upstudy", "upstudy.data", "upstudy.data.backends"],
         namespace_packages=["upstudy"],
         include_package_data=True,
         install_requires = requires,

@@ -13,6 +13,6 @@ virtualenv --python=python2.7 --no-site-packages upstudy-env
 
 export MOZ_UPSTUDY_DEV=1
 
-createdb up-research
+createdb up_research
 python setup.py develop
 ./scripts/upstudy-sql-init.py
