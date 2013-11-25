@@ -9,13 +9,30 @@ from sqlalchemy.exc import ProgrammingError, IntegrityError
 
 class SQLBackend(object):
 
-    def refresh(self, user=None, password=None, host=None, database=None, type=None, driver=None):
+    def __init__(self, config):
+        self.engine = None
+        self._connection = None
+        self._session = None
+        self.config = config
+
+        if not hasattr(SQLBackend, "_instance"):
+            SQLBackend._instance = self
+
+    def connect(self, user=None, password=None, host=None, database=None, type=None, driver=None):
+        if self.engine:
+            self._session = None
+            self._connection.close()
+            self._connection = None
+            self.engine.dispose()
+            self.engine = None
+
         user = user or self.config.get("user")
         password = password or self.config.get("user")
         database = database or self.config.get("database")
         host = host or self.config.get("host")
         type = type or self.config.get("type")
         driver = driver or self.config.get("driver")
+        pool_size = self.config.get("pool_size", 5)
         params = {
                 "user": user,
                 "password": password,
@@ -25,47 +42,43 @@ class SQLBackend(object):
                 "driver": driver,
         }
 
+        connect_url = ""
         if user:
             if not password:
-                self.engine = create_engine("{type}+{driver}://{user}@{host}/{database}".format(**params), encoding='utf8')
+                connect_url = "{type}+{driver}://{user}@{host}/{database}"
             else:
-                self.engine = create_engine("{type}+{driver}://{user}:{password}@{host}/{database}".format(**params), encoding='utf8')
+                connect_url = "{type}+{driver}://{user}:{password}@{host}/{database}"
         else:
-            self.engine = create_engine("{type}+{driver}://{host}/{database}".format(**params), encoding='utf8')
+            connect_url = "{type}+{driver}://{host}/{database}"
+        self.engine = create_engine(connect_url.format(**params), encoding='utf8', pool_size=pool_size)
 
         if self.config.get("use_threadlocal", False):
             self.engine.pool._use_threadlocal = True
+
         self._connection = self.engine.connect()
         self._connection.execute("COMMIT")
         Session = sessionmaker(bind=self.engine)
         self._session = Session()
 
-    def __init__(self, config):
-        self.config = config
-        #self.refresh()
-
-        if not hasattr(SQLBackend, "_instance"):
-            SQLBackend._instance = self
-
     def __initialize__(self):
         logger.info("creating database");
         if self.config["type"] == "mysql":
-            self.refresh()
+            self.connect()
             self._connection.execute("CREATE DATABASE IF NOT EXISTS up_research CHARACTER SET utf8;")
         elif self.config["type"] == "postgresql":
-            self.refresh(database="postgres")
+            self.connect(database="postgres")
             try:
                 self._connection.execute("CREATE DATABASE up_research;")
             except ProgrammingError, e:
                 logging.warning(e)
-            self.refresh()
+            self.connect()
 
     def __drop__(self):
         logger.info("dropping database");
         database = self.config.get("database")
         if self.config["type"] == "postgresql":
             database = "postgres"
-        self.refresh(database=database)
+        self.connect(database=database)
         self._connection.execute("DROP DATABASE up_research;")
 
     def __create_tables__(self):

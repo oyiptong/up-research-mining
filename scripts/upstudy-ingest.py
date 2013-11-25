@@ -42,6 +42,8 @@ def print_payload_stats(stats):
 
 def main():
     args = parser.parse_args()
+    db = SQLBackend.instance()
+    db.connect()
 
     if args.verbose:
         logger.setLevel(logging.DEBUG)

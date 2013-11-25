@@ -6,4 +6,5 @@ database = {
         "password": "upandaway",
         "database": "up_research",
         "use_threadlocal": True,
+        "pool_size": 10,
 }

@@ -9,13 +9,15 @@ logger = logging.getLogger("upstudy")
 logging.getLogger('sqlalchemy.engine').setLevel(logging.WARN)
 from IPython import embed
 
-from upstudy.rankers import DayCount, VisitCount, IGNORED_INTERESTS
+from upstudy.rankers import DayCount, VisitCount
 from upstudy.data.backends import SQLBackend
 from upstudy.data.models import Category, User, Submission, SubmissionInterest
-from sqlalchemy.sql import exists
 from dateutil.parser import parse
+from sqlalchemy.sql import exists
+from sqlalchemy.exc import IntegrityError
 
 import numpy as np
+from pybloom import BloomFilter
 
 VERSION_IGNORE = set(["1", "1+"])
 TOP_5_QUESTIONS = ["[url(\"interest{0}\")]:top_5'".format(i) for i in range(1,16)]
@@ -23,13 +25,14 @@ ADDITIONAL_QUESTIONS = ["[url(\"interest{0}\")]:additional_interests'".format(i)
 
 TZ_PATTERN = re.compile(r"([^()]*)( +\(.*\))?")
 
-def ingest_payload(payload, session, stats):
+def ingest_payload(payload, session, stats, interest_filter):
     nanoseconds, document = payload
     received_at = datetime.fromtimestamp(nanoseconds/1000)
 
     version = document["version"]
     uuid = document["uuid"]
     user = User.get_or_create(session, uuid)
+    session.commit()
 
     version_set = stats["users_per_versions"].get(version, set())
     version_set.add(user.id)
@@ -68,12 +71,7 @@ def ingest_payload(payload, session, stats):
     updated_dt = datetime.fromtimestamp(mktime(parse(TZ_PATTERN.match(document["updateDate"]).groups()[0]).timetuple()))
     prefs = document["prefs"]
 
-    submission = session.query(Submission).filter(
-            Submission.user_id == user.id,
-            Submission.payload_made_at == payload_dt,
-    ).first()
-
-    if not submission:
+    try:
         submission = Submission(
             user_id = user.id,
             received_at = received_at,
@@ -87,8 +85,14 @@ def ingest_payload(payload, session, stats):
             prefs = json.dumps(prefs)
         )
         session.add(submission)
+        session.commit()
+    except:
+        submission = session.query(Submission).filter(
+                Submission.user_id == user.id,
+                Submission.payload_made_at == payload_dt,
+        ).first()
 
-    categories = session.query(Category).all()
+    categories = Category.get_all(session)
     cat_index = {}
     for cat in categories:
         cat_index[cat.name.split('.')[1]] = int(cat.id)
@@ -98,28 +102,21 @@ def ingest_payload(payload, session, stats):
         for type, ns_data in interests.iteritems():
             for namespace, interest_data in interests[type].iteritems():
                 for interest, counts in interests[type][namespace].iteritems():
-                    if interest not in IGNORED_INTERESTS:
-                        submission_interest = session.query(SubmissionInterest).filter(
-                            SubmissionInterest.day == day,
-                            SubmissionInterest.type_namespace == "{0}.{1}".format(type, namespace),
-                            SubmissionInterest.category_id == cat_index[interest],
-                            SubmissionInterest.user_id == user.id,
-                        ).first()
-
-                        if not submission_interest:
-                            session.add(SubmissionInterest(
-                                day = day,
-                                type_namespace = "{0}.{1}".format(type, namespace),
-                                category_id = cat_index[interest],
-                                user_id = user.id,
-                                host_count = json.dumps(counts),
-                                submission_id = submission.id,
-                            ))
-                        else:
-                            stats["duplicate_docs"] += 1
-                            logger.info("skipping duplicate")
+                    key = "{0}-{1}.{2}-{3}-{4}".format(day, type, namespace, cat_index[interest], user.id)
+                    if key not in interest_filter:
+                        session.add(SubmissionInterest(
+                            day = day,
+                            type_namespace = "{0}.{1}".format(type, namespace),
+                            category_id = cat_index[interest],
+                            user_id = user.id,
+                            host_count = json.dumps(counts),
+                            submission_id = submission.id,
+                        ))
+                        interest_filter.add(key)
+                    else:
+                        stats["duplicate_docs"] += 1
+                        logger.info("skipping duplicate")
     session.commit()
-
     """
     rankers = [DayCount(uuid), VisitCount(uuid)]
     rankings = []
@@ -196,11 +193,12 @@ def ingest_payloads(filename):
             "num_docs": 0,
             "duplicate_docs": 0,
     }
+    bloom_filter = BloomFilter(capacity=10000000, error_rate=0.001)
     with open(filename, "r") as infile:
         db = SQLBackend.instance()
         for line in infile:
             payload = json.loads(line)
-            ingest_payload(payload, db.session, stats)
+            ingest_payload(payload, db.session, stats, bloom_filter)
         db.session.commit()
     print ""
     return stats

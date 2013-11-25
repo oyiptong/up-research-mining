@@ -24,5 +24,5 @@ if __name__ == "__main__":
         db.__drop__()
     db.__initialize__()
     db.__create_tables__()
-    db.refresh()
+    db.connect()
     db.__load_categories__()

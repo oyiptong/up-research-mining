@@ -15,6 +15,12 @@ class Category(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String(64), nullable=False, unique=True)
 
+    @classmethod
+    def get_all(cls, session):
+        if not hasattr(cls, "_all"):
+            cls._all = session.query(cls).all()
+        return cls._all
+
     def __repr__(self):
         return "<Category('{0}')>".format(self.name)
 
