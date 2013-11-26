@@ -98,8 +98,8 @@ class SurveyInterest(Base):
     """
     page_picked_at = Column(Integer, nullable=False, index=True)
 
-    # if the user chose this interest as a top 5 pick
-    top_5_pick = Column(Boolean, nullable=False, index=True)
+    # if the interest made it to the top 15 as determined by the study add-on
+    top_15 = Column(Boolean, nullable=False, index=True)
     score = Column(Integer, nullable=False, index=True)
 
 class Submission(Base):

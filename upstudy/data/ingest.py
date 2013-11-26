@@ -245,6 +245,9 @@ def process_survey(survey, session, stats):
             index = int(INTEREST_PICK_PATTERN.match(item).groups()[0])
             additional_picks.add(ranked_interests[index-1])
 
+    # obtain what was the original 15 interests shown on the first page
+    first_page_choices = set(ranked_interests[:15])
+
     for interest, score in interest_scores.iteritems():
         page_picked_at = 0
         if interest in top_picks:
@@ -258,7 +261,7 @@ def process_survey(survey, session, stats):
                 survey_id = survey_obj.id,
                 category_id = cat_index[interest],
                 page_picked_at = page_picked_at,
-                top_5_pick = True if interest in top_picks else False,
+                top_15 = True if interest in first_page_choices else False,
                 score = score
             ))
             session.commit()
