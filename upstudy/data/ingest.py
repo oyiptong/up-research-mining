@@ -287,7 +287,9 @@ def ingest_payloads(filename):
             payload = json.loads(line)
             ingest_payload(payload, db.session, stats, bloom_filter)
         db.session.commit()
-    print ""
+    sys.stdout.write("===== Payload ingestion =====")
+    sys.stdout.flush()
+    print "\n"
     return stats
 
 def ingest_surveys(filename):
@@ -304,5 +306,7 @@ def ingest_surveys(filename):
         for survey in survey_reader:
             process_survey(survey, db.session, stats)
         db.session.commit()
-    print ""
+    sys.stdout.write("===== Survey ingestion =====")
+    sys.stdout.flush()
+    print "\n"
     return stats
