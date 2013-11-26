@@ -6,7 +6,6 @@ import logging
 import json
 import time
 import math
-import numpy as np
 import upstudy.data.ingest as ingest
 import upstudy.settings
 from upstudy.data.backends import SQLBackend
@@ -43,9 +42,18 @@ def percentile(N, percent, key=lambda x:x):
     d1 = key(N[int(c)]) * (k-f)
     return d0+d1
 
+def print_survey_stats(stats):
+    sys.stdout.flush()
+    print "total surveys: {0}".format(stats["num_surveys"])
+    print "forms without data: {0}".format(stats["form_no_data"])
+    print "duplicate surveys: {0}".format(stats["duplicate_surveys"])
+    print "duplicate survey interests: {0}".format(stats["duplicate_survey_interests"])
+    print "surveys with > 30 interest scores: {0}".format(stats["more_than_30_interests"])
+
 def print_payload_stats(stats):
     db = SQLBackend.instance()
 
+    print "total payloads: {0}".format(stats["num_payloads"])
     version_dist = {}
     for version, user_set in stats["users_per_versions"].iteritems():
         version_dist[version] = len(user_set)
@@ -85,7 +93,8 @@ def main():
             print_payload_stats(stats)
 
         if args.surveys:
-            ingest.ingest_surveys(args.surveys)
+            stats = ingest.ingest_surveys(args.surveys)
+            print_survey_stats(stats)
     except Exception, e:
         logger.error("Please check your file input\n")
         logger.exception(e)

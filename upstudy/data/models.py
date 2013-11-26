@@ -1,5 +1,5 @@
 import upstudy.settings as settings
-from sqlalchemy import Column, Integer, String, Text, Date, DateTime, ForeignKey, Index
+from sqlalchemy import Column, Integer, String, Text, Date, DateTime, Boolean, ForeignKey, Index, UniqueConstraint
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -50,11 +50,12 @@ class Survey(Base):
     __table_args__ = {'mysql_engine':'InnoDB'}
 
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
     user = relationship("User", backref=backref("surveys", order_by=id))
 
-    language = Column(String(255), nullable=False, index=True)
-    download_source = Column(String(255), nullable=False, index=True)
+    language = Column(String(255), nullable=True, index=True)
+    download_source = Column(String(255), nullable=True, index=True)
+    submitted_at = Column(DateTime, nullable=False, index=True)
 
     city = Column(String(255), nullable=False, index=True)
     country = Column(String(255), nullable=False, index=True)
@@ -72,6 +73,34 @@ class Survey(Base):
 
     def __repr__(self):
         return "<Survey('{0}:{1}'>".format(self.user_id, self.response_id)
+
+class SurveyInterest(Base):
+    __tablename__ = "survey_interests"
+    __table_args__ = (
+            UniqueConstraint("user_id", "survey_id", "category_id"),
+            {'mysql_engine':'InnoDB'}
+    )
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    user = relationship("User", backref=backref("survey_interests", order_by=id))
+    survey_id = Column(Integer, ForeignKey("surveys.id"))
+    survey = relationship("Survey", backref=backref("survey_interests", order_by=id))
+    category_id = Column(Integer, ForeignKey("categories.id"))
+    category = relationship("Category", backref=backref("survey_interests", order_by=id))
+
+    """
+    all interests not picked on the first page are rolled over to the 2nd page
+    values:
+        0 when interest was not picked
+        1 when picked as top 5
+        2 when picked in the additional choice selection
+    """
+    page_picked_at = Column(Integer, nullable=False, index=True)
+
+    # if the user chose this interest as a top 5 pick
+    top_5_pick = Column(Boolean, nullable=False, index=True)
+    score = Column(Integer, nullable=False, index=True)
 
 class Submission(Base):
     __tablename__ = "submissions"
