@@ -278,15 +278,19 @@ def ingest_payloads(filename):
             "num_data_days": 0,
             "ignored_users": set(),
             "num_payloads": 0,
-            "duplicate_docs": 0,
+            "ignored_submissions": 0,
+            "duplicate_submissions": 0,
+            "duplicate_submission_interest": 0,
     }
     bloom_filter = BloomFilter(capacity=10000000, error_rate=0.001)
     with open(filename, "r") as infile:
         db = SQLBackend.instance()
+        session = db.get_session()
+        session.begin(subtransactions=True)
         for line in infile:
             payload = json.loads(line)
-            ingest_payload(payload, db.session, stats, bloom_filter)
-        db.session.commit()
+            ingest_payload(payload, session, stats, bloom_filter)
+        session.commit()
     sys.stdout.write("===== Payload ingestion =====")
     sys.stdout.flush()
     print "\n"
@@ -302,10 +306,12 @@ def ingest_surveys(filename):
     }
     with open(filename, "r") as infile:
         db = SQLBackend.instance()
+        session = db.get_session()
+        session.begin(subtransactions=True)
         survey_reader = csv.DictReader(infile)
         for survey in survey_reader:
-            process_survey(survey, db.session, stats)
-        db.session.commit()
+            process_survey(survey, session, stats)
+        session.commit()
     sys.stdout.write("===== Survey ingestion =====")
     sys.stdout.flush()
     print "\n"

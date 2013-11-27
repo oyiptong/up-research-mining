@@ -12,7 +12,6 @@ class SQLBackend(object):
     def __init__(self, config):
         self.engine = None
         self._connection = None
-        self._session = None
         self.config = config
 
         if not hasattr(SQLBackend, "_instance"):
@@ -20,7 +19,6 @@ class SQLBackend(object):
 
     def connect(self, user=None, password=None, host=None, database=None, type=None, driver=None):
         if self.engine:
-            self._session = None
             self._connection.close()
             self._connection = None
             self.engine.dispose()
@@ -57,8 +55,7 @@ class SQLBackend(object):
 
         self._connection = self.engine.connect()
         self._connection.execute("COMMIT")
-        Session = sessionmaker(bind=self.engine)
-        self._session = Session()
+        self.Session = sessionmaker(bind=self.engine)
 
     def __initialize__(self):
         database_name = self.config.get("database", "up_research")
@@ -91,13 +88,12 @@ class SQLBackend(object):
         logger.info("loading initial data");
         from upstudy.data.models import create_categories
         try:
-            create_categories(self._session)
+            create_categories(self.get_session())
         except IntegrityError, e:
             logger.warning(e)
 
-    @property
-    def session(self):
-        return self._session
+    def get_session(self):
+        return self.Session()
 
     @classmethod
     def instance(cls):
