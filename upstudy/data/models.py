@@ -2,6 +2,7 @@ import upstudy.settings as settings
 from sqlalchemy import Column, Integer, String, Text, Date, DateTime, Boolean, ForeignKey, Index, UniqueConstraint
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.ext.declarative import declarative_base
+from upstudy.data.backends import SQLBackend
 
 import logging
 logger = logging.getLogger("upstudy")
@@ -21,6 +22,16 @@ class Category(Base):
             cls._all = session.query(cls).all()
         return cls._all
 
+    @classmethod
+    def get_lookup_table(cls, session):
+        if not hasattr(cls, "_index"):
+            index = {}
+            categories = cls.get_all(session)
+            for cat in categories:
+                index[cat.name.split(".")[1]] = int(cat.id)
+            cls._index = index
+        return cls._index
+
     def __repr__(self):
         return "<Category('{0}')>".format(self.name)
 
@@ -35,14 +46,17 @@ class User(Base):
         return "<User('{0}')>".format(self.uuid)
 
     @classmethod
-    def get_or_create(cls, session, uuid):
+    def get_or_create(cls, uuid):
         """
         Get or Create a user with a given uuid
         """
+        db = SQLBackend.instance()
+        session = db.get_session()
         user = session.query(User).filter(User.uuid == uuid).first()
         if not user:
             user = cls(uuid=uuid)
             session.add(user)
+            session.commit()
         return user
 
 class Survey(Base):

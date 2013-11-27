@@ -30,28 +30,38 @@ def ingest_payload(payload, session, stats, interest_filter):
     nanoseconds, document = payload
     received_at = datetime.fromtimestamp(nanoseconds/1000)
 
-    version = document["version"]
     uuid = document["uuid"]
-    user = User.get_or_create(session, uuid)
-    session.commit()
+    user = User.get_or_create(uuid)
 
+    version = document["version"]
     version_set = stats["users_per_versions"].get(version, set())
     version_set.add(user.id)
     stats["users_per_versions"][version] = version_set
-
-    ignored_users = stats.get("ignored_users", set())
     if version in VERSION_IGNORE:
+        stats["ignored_submissions"] += 1
         """
         For now, we ignore any user before version 2
         """
-        if user.id not in ignored_users:
-            ignored_users.add(user.id)
-            stats["ignored_users"] = ignored_users
+        if user.id not in stats["ignored_users"]:
+            stats["ignored_users"].add(user.id)
         return
 
-    if user.id in ignored_users:
-        ignored_users.remove(user.id)
-        stats["ignored_users"] = ignored_users
+
+    # MySQL problem: datetimes with timezones can't be stored
+    # We  then convert to UTC, strip the timezone away then save
+    payload_dt = datetime.fromtimestamp(mktime(dateutil.parser.parse(TZ_PATTERN.match(document["payloadDate"]).groups()[0]).timetuple()))
+
+    submission = session.query(Submission).filter(
+            Submission.user_id == user.id,
+            Submission.payload_made_at == payload_dt,
+    ).first()
+    if submission:
+        # stop processing asap, to make ingestion faster
+        stats["duplicate_submissions"] += 1
+        return
+
+    if user.id in stats["ignored_users"]:
+        stats["ignored_users"].remove(user.id)
 
     # find if this user's payload is unique
     num_days = len(document["interests"])
@@ -62,11 +72,10 @@ def ingest_payload(payload, session, stats, interest_filter):
     tld_list = document["tldCounter"]
     source = document["source"]
 
-    # MySQL problem: datetimes with timezones can't be stored
-    # We  then convert to UTC, strip the timezone away then save
-    payload_dt = datetime.fromtimestamp(mktime(dateutil.parser.parse(TZ_PATTERN.match(document["payloadDate"]).groups()[0]).timetuple()))
+    # MSQL datetime+timezone workaround
     installed_dt = datetime.fromtimestamp(mktime(dateutil.parser.parse(TZ_PATTERN.match(document["installDate"]).groups()[0]).timetuple()))
     updated_dt = datetime.fromtimestamp(mktime(dateutil.parser.parse(TZ_PATTERN.match(document["updateDate"]).groups()[0]).timetuple()))
+
     prefs = document["prefs"]
 
     try:
@@ -84,16 +93,17 @@ def ingest_payload(payload, session, stats, interest_filter):
         )
         session.add(submission)
         session.commit()
-    except:
+    except IntegrityError, e:
+        # this should not happen
+        logger.exception(e)
+        stats["duplicate_submissions"] += 1
+        session.rollback()
         submission = session.query(Submission).filter(
                 Submission.user_id == user.id,
                 Submission.payload_made_at == payload_dt,
         ).first()
 
-    categories = Category.get_all(session)
-    cat_index = {}
-    for cat in categories:
-        cat_index[cat.name.split('.')[1]] = int(cat.id)
+    cat_index = Category.get_lookup_table(session)
 
     for day_str, interests in document["interests"].iteritems():
         day = date.fromtimestamp(int(day_str)*24*60*60)
@@ -112,8 +122,7 @@ def ingest_payload(payload, session, stats, interest_filter):
                         ))
                         interest_filter.add(key)
                     else:
-                        stats["duplicate_docs"] += 1
-                        logger.info("skipping duplicate")
+                        stats["duplicate_submission_interest"] += 1
     session.commit()
     """
     rankers = [DayCount(uuid), VisitCount(uuid)]
@@ -141,10 +150,18 @@ def process_survey(survey, session, stats):
     if not uuid:
         stats["form_no_data"] += 1
         return
-    user = User.get_or_create(session, uuid)
-    session.commit()
 
     response_id = int(survey["Response ID"])
+    survey_obj = session.query(Survey).filter(
+            Survey.id == response_id,
+    ).first()
+    if survey_obj:
+        # stop processing asap, to make ingestion faster
+        stats["duplicate_surveys"] += 1
+        return
+
+    user = User.get_or_create(uuid)
+
     status = survey["Status"]
     #user_agent = survey["User Agent"]
     language = survey["Language"]
@@ -155,11 +172,6 @@ def process_survey(survey, session, stats):
     started_date = None #started_date = dateutil.parser.parse(started_datestr)
     submitted_datestr = survey["Date Submitted"]
     submitted_date = dateutil.parser.parse(submitted_datestr)
-    """
-    if started_date and submission_date:
-        time_taken = submitted_date - started_date
-        logger.debug("uuid:{0} took {1} answering the survey".format(user_id, time_taken))
-    """
 
     # location
     city = survey["City"]
@@ -198,6 +210,8 @@ def process_survey(survey, session, stats):
         session.add(survey_obj)
         session.commit()
     except IntegrityError, e:
+        # this should not happen
+        logger.exception(e)
         stats["duplicate_surveys"] += 1
         session.rollback()
         survey_obj = session.query(Survey).filter(
@@ -206,10 +220,7 @@ def process_survey(survey, session, stats):
 
     # interests processing
 
-    categories = Category.get_all(session)
-    cat_index = {}
-    for cat in categories:
-        cat_index[cat.name.split('.')[1]] = int(cat.id)
+    cat_index = Category.get_lookup_table(session)
 
     all_interests = survey["15: interests"]
     score_list = survey["35: scoreList"]

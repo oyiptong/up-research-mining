@@ -54,9 +54,12 @@ def print_payload_stats(stats):
     db = SQLBackend.instance()
 
     print "total payloads: {0}".format(stats["num_payloads"])
+    print "num ignored submissions: {0}".format(stats["ignored_submissions"])
+    print "num duplicate submissions: {0}".format(stats["duplicate_submissions"])
     version_dist = {}
     for version, user_set in stats["users_per_versions"].iteritems():
         version_dist[version] = len(user_set)
+    print "ignored users: {0}".format(len(stats["ignored_users"]))
     print "users per versions: {0}".format(json.dumps(version_dist))
     versions = stats["users_per_versions"].keys()
     ones = stats["users_per_versions"]["1"].union(stats["users_per_versions"]["1+"])
@@ -68,9 +71,11 @@ def print_payload_stats(stats):
     print "25th percentile of history days: {0}".format(percentile(user_counts, 0.25))
     print "median number of history days: {0}".format(percentile(user_counts, 0.5))
     print "75th percentile of history days: {0}".format(percentile(user_counts, 0.75))
-    num_users = db.session.query(User).count()
-    print "number of users stored: {0}".format(num_users)
-    print "ignored users: {0}".format(len(stats["ignored_users"]))
+
+def print_general_stats():
+    db = SQLBackend.instance()
+    num_users = db.get_session().query(User).count()
+    print "number of users: {0}".format(num_users)
 
 def main():
     start_time = time.time()
@@ -95,6 +100,7 @@ def main():
         if args.surveys:
             stats = ingest.ingest_surveys(args.surveys)
             print_survey_stats(stats)
+        print_general_stats()
     except Exception, e:
         logger.error("Please check your file input\n")
         logger.exception(e)
