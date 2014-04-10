@@ -76,6 +76,14 @@ $ . ./upstudy-env/bin/activate
 (upstudy-env) $  
 ```
 
+### Database data initialization
+To initialize the database, run this script:
+```
+(upstudy-env) $ upstudy-sql-init.py -c
+```
+
+This will drop any table if they exist, recreate them and populate the interest table with known interests. Specify `--help` for more options.
+
 ### Data ingestion
 
 To run the ingestion code and to obtain help, run:
