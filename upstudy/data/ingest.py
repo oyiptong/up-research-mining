@@ -33,7 +33,7 @@ def ingest_payload(payload, session, stats, interest_filter):
     uuid = document["uuid"]
     user = User.get_or_create(uuid)
 
-    version = document["version"]
+    version = document.get("version", "unspecified")
     version_set = stats["users_per_versions"].get(version, set())
     version_set.add(user.id)
     stats["users_per_versions"][version] = version_set
@@ -131,7 +131,7 @@ def ingest_payload(payload, session, stats, interest_filter):
         ranker.consume(document["interests"])
         ranking = ranker.get_rankings()
         rankings.append(ranking)
-    
+
     print "daycount_edrules_rules\t\t\tvisitcount_edrules_rules"
     for i in range(len(rankings[0]['rules']['edrules'])):
         print "{0}\t\t\t{1}".format(
@@ -300,7 +300,10 @@ def ingest_payloads(filename):
         session.begin(subtransactions=True)
         for line in infile:
             payload = json.loads(line)
-            ingest_payload(payload, session, stats, bloom_filter)
+            try:
+                ingest_payload(payload, session, stats, bloom_filter)
+            except:
+                session.rollback()
         session.commit()
     sys.stdout.write("===== Payload ingestion =====")
     sys.stdout.flush()
