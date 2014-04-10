@@ -36,6 +36,16 @@ Once you have installed Postgres, make sure pg_config is in your path, as you're
 $ export PATH=/Applications/Postgres93.app/Contents/MacOS/bin/:$PATH
 ```
 
+You then need to create an `up` user, with password `upandaway` and grant permissions for the database `up_research`. e.g.:
+
+```
+$ psql
+
+# CREATE USER up WITH PASSWORD 'upandaway';
+# CREATE DATABASE up_research;
+# GRANT ALL PRIVILEGES ON DATABASE up_research to up;
+```
+
 ### Python and environment tools
 
 For this project, we will use pyenv as a tool to manage our python versions and environments.  
@@ -59,3 +69,18 @@ $ pyenv local 2.7.5
 $ pip install virtualenv
 $ ./setup-project.sh
 ```
+
+To run the environment, you just need to load the virtual env as follows:
+```
+$ . ./upstudy-env/bin/activate
+(upstudy-env) $  
+```
+
+### Data ingestion
+
+To run the ingestion code and to obtain help, run:
+```
+(upstudy-env) $ upstudy-ingest.py
+```
+
+
