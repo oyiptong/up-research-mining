@@ -24,5 +24,5 @@ setup(
         namespace_packages=["upstudy"],
         include_package_data=True,
         install_requires = requires,
-        scripts=[]
+        scripts=["./scripts/upstudy-ingest.py", "./scripts/upstudy-pgsql-init.py", "./scripts/upstudy-sql-init.py"]
 )
